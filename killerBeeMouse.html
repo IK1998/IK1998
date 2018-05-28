@@ -1,0 +1,366 @@
+<!doctype html> 
+<meta charset="utf-8"> 
+<title>Движение пчелы</title>
+<canvas width="550" height="400" 
+  style="border: 1px dashed black"></canvas> 
+ <script>
+//Переменные игры 
+	 var score_bee = 0;
+	 var score_fairy = 0;
+//---Объект спрайтов 	 
+var spriteObject =
+ { 
+ sourceX: 0,  
+ sourceY: 0, 
+ sourceWidth: 32,
+ sourceHeight: 32, 
+ width: 32,
+ height: 32,  
+ x: 0, 
+ y: 0, 
+ vx: 0,
+ vy: 0,
+ visible: true,  
+ draggable: true,  
+ friction: 10,
+   //Геттеры 
+ left: function() 
+ {    
+ return this.x; 
+ },  
+ right: function() 
+ {    
+ return this.x + this.width; 
+ },  
+ top: function() 
+ {  
+ return this.y; 
+ },   
+ bottom: function()  
+ {   
+ return this.y + this.height;
+ }, 
+  centerX: function()
+  {   
+  return this.x + (this.width / 2);
+  }, 
+  centerY: function()  
+  {   
+  return this.y + (this.height / 2);
+  },
+  halfWidth: function()  
+ {    
+ return this.width / 2; 
+ }, 
+ halfHeight: function()
+ {    
+ return this.height / 2;   
+ },
+ speed: 3, 
+ rotationSpeed: 0.3, 
+ visible: true,  
+ draggable: true   
+}; 
+function hitTestRectangle(r1, r2)
+ {   
+//Вернет true при выполнении условия столкновения для двух осей  
+ return Math.abs(r1.centerX() - r2.centerX()) 
+    < r1.halfWidth() + r2.halfWidth()   
+  && Math.abs(r1.centerY() - r2.centerY()) 
+    < r1.halfHeight() + r2.halfHeight();
+ }
+ function hitTestPoint(pointX, pointY, sprite)
+{
+var hit = false;
+ if(pointX > sprite.left()
+ && pointX < sprite.right()
+ && pointY > sprite.top()
+ && pointY < sprite.bottom())
+ {
+ hit = true;
+ }
+ else
+ {
+   hit =false;
+ }
+return hit;
+}
+//Холст и его поверхность рисования
+var canvas= document.querySelector("canvas"); 
+var drawingSurface = canvas.getContext("2d"); 
+//Подключение обработчиков событий 
+canvas.addEventListener("mousemove", mousemoveHandler,false);
+canvas.addEventListener("mousedown", mousedownHandler, false);
+//Загрузка изображения 
+var image = new Image(); 
+image.addEventListener("load", loadHandler, false);
+ image.src = "dragAndDrop.png";
+ //Массивы объектов 
+var bullets = [];
+var bee = Object.create(spriteObject);
+bee.x = 530;
+bee.y = 380;
+var fairy = Object.create(spriteObject);
+var wand = Object.create(spriteObject);
+  wand.x=fairy.x+2;
+  wand.y=fairy.y+2;
+  var mouseX=fairy.x+10;
+  var mouseY=fairy.y+10;
+  var sprites = [];
+  var stars = [];
+  var range = 300; 
+  var bulletTimer = 0;
+  var timeToFire = 30;  
+	  function loadHandler()
+    {
+    update();
+    }
+ function mousemoveHandler(event)
+  {
+     mouseX = event.pageX - canvas.offsetLeft;   
+	 mouseY = event.pageY - canvas.offsetTop;
+	  
+	 if(mouseX>canvas.width)
+ {
+    mouseX=canvas.width;
+ }
+ if(mouseX<0)
+ {
+    mouseX=0;
+ }
+ if(mouseY>canvas.height)
+ {
+    mouseY=canvas.height;
+ }
+ if(mouseY<0)
+ {
+   mouseY=0;
+ }
+	 }
+ function mousedownHandler(event)	
+   {
+    var star = Object.create(spriteObject); 
+	star.x=fairy.x;
+	star.y=fairy.y;
+    angle = Math.atan2(mouseY - fairy.y, mouseX  - fairy.x);
+  	//Установка свойств vx и vy звезды  
+	  star.vx = 7 * Math.cos(angle); 
+	  star.vy = 7 * Math.sin(angle); 
+    //Добавление звезды массивы sprites и stars 
+	  sprites.push(star);  
+	  stars.push(star); 
+	   }	
+ function removeObject(objectToRemove, array) {
+  var i = array.indexOf(objectToRemove); 
+  if (i!==-1)  
+  {   
+	array.splice(i, 1);   
+  } 
+ }
+  function playGame() 
+ {  
+ //Расчет проекций вектора, направленного от пчелы к курсору
+ var vx = mouseX - bee.centerX();
+ var vy = mouseY - bee.centerY();  
+ //Расчет расстояния между центром пчелы и курсором мыши
+ var distance = Math.sqrt(vx * vx + vy * vy);
+ if (distance <= range)  
+ { 
+ //Применение эффекта ослабления при повороте пчелы   
+ var moveX = bee.rotationSpeed * vx / distance;   
+ var moveY = bee.rotationSpeed * vy / distance; 
+ bee.vx += moveX;   
+ bee.vy += moveY; 
+ //Применение эффекта ослабления при перемещении пчелы 
+ var moveDistance = Math.sqrt(bee.vx * bee.vx    
+ + bee.vy * bee.vy);   
+ bee.vx = bee.speed * bee.vx / moveDistance;  
+ bee.vy = bee.speed * bee.vy / moveDistance; 
+ //Вычисление угла поворота пчелы в радианах  
+ angle = Math.atan2(bee.vy, bee.vx);   
+ //Перевод радиан в градусы, чтобы правильно повернуть пчелу  
+ bee.rotation = angle * 180 / Math.PI + 90; 
+ }  
+ else  
+ { 
+ //Применение торможения    
+ bee.vx *= bee.friction;  
+ bee.vy *= bee.friction; 
+ } 
+ //Перемещение пчелы  
+ bee.x += bee.vx; 
+ bee.y += bee.vy;
+  if(bee.y>375)
+ {
+    bee.y=375;
+ }
+ if(bee.y<0)
+ {
+    bee.y=0;
+ }
+ if(bee.x>500)
+ {
+    bee.x=500;
+ }
+ if(bee.x<0)
+ {
+   bee.x=0;
+ }
+  if(bee.y>=0 && bee.y<=375)
+ {
+ }
+ else
+ {
+     bee.x=100;
+	 bee.y=100;
+	 
+	 bee.vx =0;   
+     bee.vy =0; 
+	  }
+   }  
+     function playGame2()
+	 {
+	  for(var i = 0; i < bullets.length; i++)
+	  {  
+	  var bullet = bullets[i]; 
+   //Перемещение пули 
+   bullet.x += bullet.vx;  
+   bullet.y += bullet.vy; 
+   //Удаление пули если она вышла за границы холста  
+  if (bullet.centerY() < 0 
+  || bullet.centerX() < 0     || bullet.centerX() > 550 
+  || bullet.centerY() > 400)  
+  {   
+   	removeObject(bullet, bullets); 
+	//Уменьшение счетчика цикла на 1 для компенсации удаления 
+	i--; 
+  } 
+  } 
+   bulletTimer++;
+  if(bulletTimer === timeToFire)
+ {
+   newbullet();
+   bulletTimer = 0;
+ }
+        }
+	function playGame3()
+	 {
+	  for(var i = 0; i < stars.length; i++)
+	  {  
+	  var star = stars[i]; 
+  //Перемещение звезды 
+  star.x += star.vx;  
+  star.y += star.vy; 
+  //Удаление звезды если она вышла за границы холста  
+  if (star.centerY() < 0 
+  || star.centerX() < 0     || star.centerX() > 550 
+  || star.centerY() > 400)  
+  {   
+  	removeObject(star, stars);    
+	removeObject(star, sprites);  
+  //Уменьшение счетчика цикла на 1 для компенсации удаления 
+	i--; 
+  } 
+  } 
+        }	
+    function newbullet()
+  {
+   var bullet=Object.create(spriteObject);
+   bullet.x=bee.x;
+   bullet.y=bee.y;
+	angle = Math.atan2(-bee.x + fairy.x, -bee.y  + fairy.y);
+	bullet.vx = 7 * Math.cos(angle); 
+	bullet.vy = 7 * Math.sin(angle); 
+	bullets.push(bullet); 
+ }
+    function update()
+  {
+     //Очистка холста: удаление предыдущего анимационного кадра 
+	 playGame();
+	 drawingSurface.clearRect(0, 0, canvas.width, canvas.height);
+	 
+	 drawingSurface.drawImage(image,0,28,376,218,0,0,canvas.width,canvas.height);
+	 
+	 VX=(mouseX-fairy.x);
+	 VY=(mouseY-fairy.y);
+
+	distans=VX*VX+VY*VY;
+	if(distans>900) 
+	{
+	fairy.x=fairy.x+VX/300;
+	fairy.y=fairy.y+VY/300;
+	}
+	var radius = 25; 
+    //Вычисление угла направления от центра Феи к курсору 		
+     angle = Math.atan2(mouseY - fairy.y, mouseX  - fairy.x);
+     rotation = angle * (180 / Math.PI);
+    //Перемещение палочки вокруг Феи  	
+     wandX = fairy.x +12+ (radius * Math.cos(angle))  ;
+     wandY = fairy.y +12+  (radius * Math.sin(angle)); 
+		playGame3();
+	//Отображение спрайтов 
+	 drawingSurface.drawImage(image,2,0,28,28,bee.x,bee.y,bee.width,bee.height);
+	 
+	 drawingSurface.drawImage(image,50,0,28,28,fairy.x,fairy.y,fairy.width,fairy.height);
+
+	 drawingSurface.drawImage(image,99,2,10,10,wandX,wandY,10,10);
+	    playGame2();
+	 for(var i = 0; i < bullets.length; i++)
+	{  
+		var bull = bullets[i];
+		drawingSurface.drawImage(image,145,1,5,5,bull.x,bull.y,8,8);
+		}
+    //Отображение счета 
+	drawingSurface.fillText(score_bee,410,50);	
+    drawingSurface.fillText(score_fairy,150,50);
+		if(score_bee>20) 
+		{
+		  drawingSurface.fillText("ЛЕС СПАСЁН ОТ ЗЛОБНОЙ ПЧЕЛЫ!!!",100,120);	
+		   
+		}
+		else if(score_fairy>20)
+		{
+		  drawingSurface.fillText("ЛЕС ЗАХВАЧЕН ЗЛОБНОЙ ПЧЕЛОЙ!!!",200,120);
+		 }
+		else
+		{
+		  //Цикл анимации 
+	      requestAnimationFrame(update,canvas);
+		}
+	for(var i = 0; i < stars.length; i++)
+	{  
+		var star = stars[i];
+		drawingSurface.drawImage(image,120,0,20,20,star.x,star.y,star.width,star.height);
+	}
+	 for(var j = 0; j < stars.length; j++)
+ {
+   var star = stars[j];
+  if(hitTestRectangle(star, bee)==true)
+ {
+    //Увеличение счета попаданий в пчелу
+    score_bee++;
+	//Удаление звезды
+    removeObject(star, stars);    
+	removeObject(star, sprites);  
+	//Уменьшение счетчика цикла на 1 для компенсации удаления 
+	i--; 
+  }
+ }
+  for(var j = 0; j < bullets.length; j++)
+ {
+   var bullet = bullets[j];
+ 
+ if(hitTestRectangle(bullet, fairy)==true)
+ {
+  //Увеличение счета попаданий в фею
+  score_fairy++;
+  //Удаление пули
+   removeObject(bullet, bullets);    
+   removeObject(bullet, sprites);
+   //Уменьшение счетчика цикла на 1 для компенсации удаления 
+   i--; 
+  }
+ }
+ }
+</script>
+
